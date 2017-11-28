@@ -31,6 +31,7 @@
 
 #include "config.h"
 #include <stddef.h>
+#include <unistd.h>
 #include <time.h>
 #include "rtp.h"
 #include "sip.h"
@@ -84,10 +85,45 @@ stream_create(sdp_media_t *media, address_t dst, int type)
     return stream;
 }
 
+void
+stream_destroyer(void *item)
+{
+    rtp_stream_t *stream = (rtp_stream_t *) item;
+    if (!item)
+        return;
+
+    if (stream->fp)
+        fclose(stream->fp);
+
+    sng_free(stream->file);
+    sng_free(stream);
+}
+
 rtp_stream_t *
 stream_complete(rtp_stream_t *stream, address_t src)
 {
+    int fd;
+    u_char name[256];
+    sip_call_t *call;
+
+    call = stream_get_call(stream);
+    snprintf(name, sizeof(name), "/tmp/sngrep-%s-XXXXXX", call->callid);
+    fd = mkstemp(name);
+
     stream->src = src;
+    stream->fp = fdopen(fd, "w");
+    stream->file = malloc(sizeof(name));
+    strncpy(stream->file, name, sizeof(name));
+
+    FILE* log = fopen("/tmp/sngrep-streams.log", "a");
+    fprintf(log, "%s: (%s:%u) -> (%s:%u)\n",
+            stream->file,
+            stream->src.ip,
+            stream->src.port,
+            stream->dst.ip,
+            stream->dst.port);
+    fclose(log);
+
     return stream;
 }
 
@@ -100,11 +136,18 @@ stream_set_format(rtp_stream_t *stream, uint32_t format)
 void
 stream_add_packet(rtp_stream_t *stream, packet_t *packet)
 {
+    u_char *payload;
+    u_int size;
+
     if (stream->pktcnt == 0)
         stream->time = packet_time(packet);
 
     stream->lasttm = (int) time(NULL);
     stream->pktcnt++;
+
+    payload = packet_payload(packet);
+    size = packet_payloadlen(packet);
+    fwrite(payload + RTP_HDR_LENGTH, sizeof(u_char), size - RTP_HDR_LENGTH, stream->fp);
 }
 
 uint32_t

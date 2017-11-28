@@ -182,6 +182,26 @@ AS_IF([test "x$WITH_PCRE" == "xyes"], [
 ], [])
 
 ####
+#### Sox Support
+####
+AC_ARG_WITH([sox],
+    AS_HELP_STRING([--with-sox], [Enable SoX support for rtp playback]),
+    [AC_SUBST(WITH_SOX, $withval)],
+    [AC_SUBST(WITH_SOX, no)]
+)
+
+AS_IF([test "x$WITH_SOX" == "xyes"], [
+        AC_CHECK_HEADER([sox.h], [], [
+            AC_MSG_ERROR([ You need libsox development files installed to compile with rtp playback support.])
+	])
+        AC_CHECK_LIB([sox], [sox_init], [], [
+            AC_MSG_ERROR([ You need libsox library installed to compile with rtp playback support.])
+	])
+	AC_DEFINE([WITH_SOX],[],[Compile With SoX support for rtp playback])
+], [])
+
+
+####
 #### IPv6 Support
 ####
 AC_ARG_ENABLE([ipv6],
@@ -223,6 +243,7 @@ AS_IF([test "x$USE_EEP" == "xyes"], [
 # Conditional Source inclusion 
 AM_CONDITIONAL([WITH_GNUTLS], [test "x$WITH_GNUTLS" == "xyes"])
 AM_CONDITIONAL([WITH_OPENSSL], [test "x$WITH_OPENSSL" == "xyes"])
+AM_CONDITIONAL([WITH_SOX], [test "x$WITH_SOX" == "xyes"])
 AM_CONDITIONAL([USE_EEP], [test "x$USE_EEP" == "xyes"])
 
 
@@ -249,6 +270,7 @@ AC_MSG_NOTICE(   sngrep configure finished                            	)
 AC_MSG_NOTICE( ====================================================== 	)
 AC_MSG_NOTICE( GnuTLS Support               : ${WITH_GNUTLS}		)
 AC_MSG_NOTICE( OpenSSL Support              : ${WITH_OPENSSL} 			)
+AC_MSG_NOTICE( SoX Support                  : ${WITH_SOX} 		)
 AC_MSG_NOTICE( Unicode Support              : ${UNICODE}  		)
 AC_MSG_NOTICE( Perl Expressions Support     : ${WITH_PCRE}              )
 AC_MSG_NOTICE( IPv6 Support                 : ${USE_IPV6}               )

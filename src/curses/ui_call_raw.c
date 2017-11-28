@@ -35,6 +35,9 @@
 #include "ui_call_raw.h"
 #include "ui_save.h"
 #include "capture.h"
+#ifdef WITH_SOX
+#include "decode.h"
+#endif
 
 /**
  * Ui Structure definition for Call Raw panel
@@ -65,6 +68,17 @@ call_raw_create(ui_t *ui)
     info->pad = newpad(500, COLS);
     info->padline = 0;
     info->scroll = 0;
+#ifdef WITH_SOX
+    info->threads = vector_create(0, 1);
+    vector_set_destroyer(info->threads, call_raw_thread_destroyer);
+#endif
+}
+
+void
+call_raw_thread_destroyer(void *item)
+{
+    pthread_t * thread = (pthread_t *) item;
+    pthread_join(*thread, NULL);
 }
 
 void
@@ -73,6 +87,10 @@ call_raw_destroy(ui_t *ui)
     call_raw_info_t *info;
 
     if ((info = call_raw_info(ui))) {
+#ifdef WITH_SOX
+        vector_destroy(info->threads);
+#endif
+
         // Delete panel windows
         delwin(info->pad);
         sng_free(info);
@@ -98,6 +116,21 @@ call_raw_redraw(ui_t *ui)
 }
 
 int
+call_raw_draw_footer(ui_t *ui)
+{
+    call_raw_info_t *info;
+
+    // Get panel information
+    info = call_raw_info(ui);
+
+    const char *keybindings[] = {
+        key_action_key_str(ACTION_PLAY_SDP), "Play SDP",
+    };
+
+    ui_draw_bindings(ui, keybindings, 2);
+}
+
+int
 call_raw_draw(ui_t *ui)
 {
     call_raw_info_t *info;
@@ -118,6 +151,15 @@ call_raw_draw(ui_t *ui)
     // Copy the visible part of the pad into the panel window
     copywin(info->pad, ui->win, info->scroll, 0, 0, 0, ui->height - 1, ui->width - 1, 0);
     touchwin(ui->win);
+
+#ifdef WITH_SOX
+    if (!info->group && msg_has_sdp(info->msg))
+    {
+        // Show some keybinding
+        call_raw_draw_footer(ui);
+    }
+#endif
+
     return 0;
 }
 
@@ -203,6 +245,16 @@ call_raw_print_msg(ui_t *ui, sip_msg_t *msg)
     return 0;
 }
 
+#ifdef WITH_SOX
+void
+call_raw_playback(call_raw_info_t *info, rtp_stream_t *stream)
+{
+    pthread_t * thread = malloc(sizeof(pthread_t));
+    pthread_create(thread, NULL, decode_playback, stream->file);
+    vector_append(info->threads, thread);
+}
+#endif
+
 int
 call_raw_handle_key(ui_t *ui, int key)
 {
@@ -215,6 +267,8 @@ call_raw_handle_key(ui_t *ui, int key)
     if (!(info  = call_raw_info(ui)))
         return -1;
 
+    sip_call_t *call;
+    rtp_stream_t *stream;
     // Check actions for this key
     while ((action = key_find_action(key, action)) != ERR) {
         // Check if we handle this action
@@ -264,6 +318,15 @@ call_raw_handle_key(ui_t *ui, int key)
             case ACTION_CLEAR_CALLS:
                 // Propagate the key to the previous panel
                 return KEY_PROPAGATED;
+#ifdef WITH_SOX
+            case ACTION_PLAY_SDP:
+                if (info->msg)
+                    call = info->msg->call;
+                stream = vector_first(call->streams);
+
+                call_raw_playback(info, stream);
+                break;
+#endif
             default:
                 // Parse next action
                 continue;

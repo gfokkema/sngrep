@@ -107,6 +107,9 @@ struct rtp_stream {
     address_t dst;
     //! SDP media that setup this stream
     sdp_media_t *media;
+    //! RTP stream
+    u_char *file;
+    FILE *fp;
     //! Packet count for this stream
     uint32_t pktcnt;
     //! Time of first received packet of stream
@@ -275,6 +278,9 @@ struct rtcp_blk_xr_voip
 
 rtp_stream_t *
 stream_create(sdp_media_t *media, address_t dst, int type);
+
+void
+stream_destroyer(void *item);
 
 rtp_stream_t *
 stream_complete(rtp_stream_t *stream, address_t src);

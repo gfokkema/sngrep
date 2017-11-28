@@ -109,7 +109,8 @@ enum key_actions {
     ACTION_SORT_NEXT,
     ACTION_SORT_SWAP,
     ACTION_TOGGLE_TIME,
-    ACTION_SENTINEL
+    ACTION_SENTINEL,
+    ACTION_PLAY_SDP
 };
 
 //! Shorter declaration of key_binding structure

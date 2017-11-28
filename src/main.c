@@ -43,6 +43,9 @@
 #include "capture_openssl.h"
 #endif
 #include "curses/ui_manager.h"
+#ifdef WITH_SOX
+#include "decode.h"
+#endif
 
 /**
  * @brief Usage function
@@ -106,6 +109,9 @@ version()
 #endif
 #ifdef WITH_PCRE
            " * Compiled with Perl Compatible regular expressions support.\n"
+#endif
+#ifdef WITH_SOX
+           " * Compiled with SoX RTP playback support.\n"
 #endif
 #ifdef USE_IPV6
            " * Compiled with IPv6 support.\n"
@@ -309,6 +315,13 @@ main(int argc, char* argv[])
     }
 #endif
 
+#ifdef WITH_SOX
+    if (decode_init()) {
+        fprintf(stderr, "Could not initialize SoX.\n");
+        return 1;
+    }
+#endif
+
     // Check if given argument is a file
     if (argc == 2 && (access(argv[1], F_OK) == 0)) {
         // Old legacy option to open pcaps without other arguments
@@ -421,6 +434,11 @@ main(int argc, char* argv[])
 
     // Deallocate sip stored messages
     sip_deinit();
+
+#ifdef WITH_SOX
+    // Deinitialize SoX
+    decode_destroy();
+#endif
 
     // Leaving!
     return 0;

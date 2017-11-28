@@ -54,7 +54,7 @@ call_create(char *callid, char *xcallid)
 
     // Create an empty vector to strore stream data
     call->streams = vector_create(0, 2);
-    vector_set_destroyer(call->streams, vector_generic_destroyer);
+    vector_set_destroyer(call->streams, stream_destroyer);
 
     // Create an empty vector to store x-calls
     call->xcalls = vector_create(0, 1);

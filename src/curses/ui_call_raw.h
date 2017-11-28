@@ -51,6 +51,10 @@ struct call_raw_info {
     sip_msg_t *msg;
     //! Last printed message on panel (Call raw display)
     sip_msg_t *last;
+#ifdef WITH_SOX
+    //! Running audio threads
+    vector_t *threads;
+#endif
     //! Window pad to copy on displayed screen
     WINDOW *pad;
     //! Already used lines of the window pad
@@ -69,6 +73,9 @@ struct call_raw_info {
  */
 void
 call_raw_create(ui_t *ui);
+
+void
+call_raw_thread_destroyer(void * item);
 
 /**
  * @brief Destroy panel

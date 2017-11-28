@@ -6,6 +6,11 @@ sngrep_LDADD=
 if USE_EEP
 sngrep_SOURCES+=capture_eep.c
 endif
+if WITH_SOX
+sngrep_SOURCES+=decode.c
+sngrep_CFLAGS+=$(SOX_CFLAGS)
+sngrep_LDADD+=$(SOX_LIBS)
+endif
 if WITH_GNUTLS
 sngrep_SOURCES+=capture_gnutls.c
 sngrep_CFLAGS+=$(LIBGNUTLS_CFLAGS) $(LIBGCRYPT_CFLAGS)
